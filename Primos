@@ -1,0 +1,111 @@
+; Nome: Rodrigo Aparecido Enju
+; NUSP: 8941105
+
+
+global _start
+
+section .bss
+
+	str: resb 12		; String auxiliar para imprimir um inteiro
+	cnt: resd 1		; Contador auxiliar para imprimir a string e para testar os numeros
+	count: resd 1		; Contador de 2 à 1000
+	lower: resd 1		; Simulador de [count] ^ 1/2
+
+section .text
+
+_start:
+
+	mov eax, 2		; Inicializa as variáveis lower e count
+	mov [lower], eax
+	mov eax, 2
+	mov [count], eax
+	jmp int2str
+
+	print:			; Imprime a string str
+	mov eax, 4
+	mov ebx, 1
+	mov ecx, str
+	mov edx, [cnt]
+	add edx, 2
+	int 0x80
+	
+	next:			; Checa se count > 1000, caso contrário, atualiza as variáveis
+	mov eax, [count]
+	mov ebx, 1000
+	cmp eax, ebx
+	jg end			; Termina o processo em n = 1000
+	mov eax, [count]
+	inc eax
+	mov [count], eax
+	xor rax, rax
+	mov eax, [lower]
+	mov ebx, [lower]
+	mul ebx
+	cmp eax, [count]
+	jge checkprime		; Caso [lower] ^ 2 > [count], [lower]++
+	mov eax, [lower]
+	add eax, 1
+	mov [lower], eax
+	jmp checkprime
+
+	int2str:		; Salva o valor de [count] em str
+
+	push rbp
+	mov rbp, rsp
+	mov eax, [count]
+	xor ebx, ebx		; Zera o contador de
+	mov [cnt], ebx		; caracteres da string
+
+	subrot:			; Subrotina auxiliar para empilhar os digitos do inteiro
+	xor rdx, rdx
+	mov ebx, 10
+	div ebx
+	push rdx
+	mov edx, [cnt]
+	add edx, 1
+	mov [cnt], edx
+	cmp eax, 0
+	jg subrot
+	xor ebx, ebx
+	
+	build:			; Subrotina auxiliar para "montar" o inteiro na string str
+	xor rcx, rcx
+	pop rcx
+	add ecx, '0'
+	mov [str+ebx], ecx
+	add ebx, 1
+	cmp [cnt], ebx
+	jg build
+	
+	mov ecx, 0xa		; Termina a string
+	mov ebx, [cnt]		; com uma quebra de
+	mov [str+ebx], ecx	; linha e um valor
+	mov ecx, 0		; zero
+	mov [str+ebx+1], ecx
+	pop rbp
+	jmp print		; Fim de int2str
+	
+	checkprime:		; Checa se o valor de [count] é primo
+	mov eax, 2
+	mov [cnt], eax
+	
+	cycle:			; Testa os números até a raiz de [count]
+	mov eax, [cnt]
+	cmp eax, [lower]
+	jg int2str		; Caso teste um número maior que a raiz do inteiro, este é primo
+	
+	xor rdx, rdx
+	mov eax, [count]
+	mov ebx, [cnt]
+	div ebx
+	cmp edx, 0		; Checa se o resto de alguma divisão é zero
+	je next			; Se for zero, não é primo
+	mov eax, [cnt]
+	add eax, 1
+	mov [cnt], eax
+	jmp cycle		; Fim de checkprime
+	
+	end:			; Fim do programa
+	mov eax, 1
+	mov ebx, 0
+	int 0x80
